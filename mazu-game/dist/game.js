@@ -1,46 +1,61 @@
-const game=document.querySelector('#game'),throwButton=document.querySelector('#throw'),throwLabel=document.querySelector('#throw-label'),status=document.querySelector('#status'),result=document.querySelector('#result'),motionButton=document.querySelector('#motion');
+const $=selector=>document.querySelector(selector);
+const game=$('#game'),throwButton=$('#throw'),throwLabel=$('#throw-label'),status=$('#status'),result=$('#result'),motionButton=$('#motion');
+const scenes=[
+ {id:'mazu',name:'天上圣母妈祖',short:'妈祖',temple:'天后宫堂',theme:'平安 · 守护',asset:'temple.png'},
+ {id:'wenchang',name:'文昌帝君',short:'文昌帝君',temple:'文昌雅殿',theme:'学业 · 文运',asset:'wenchang.webp'},
+ {id:'guanyin',name:'观音菩萨',short:'观音',temple:'慈航观音殿',theme:'慈悲 · 安宁',asset:'guanyin.webp'},
+ {id:'guandi',name:'关圣帝君',short:'关帝',temple:'关帝忠义堂',theme:'忠义 · 勇毅',asset:'guandi.webp'},
+ {id:'caishen',name:'财神',short:'财神',temple:'财神宝殿',theme:'财运 · 丰足',asset:'caishen.webp'},
+ {id:'yuelao',name:'月下老人',short:'月老',temple:'月老姻缘殿',theme:'姻缘 · 和合',asset:'yuelao.webp'}
+];
 const outcomes={sheng:{title:'圣筊',description:'所问之事，允准可行',faces:'一平一凸 · 静心而行'},xiao:{title:'笑筊',description:'心意未明，想清楚再问',faces:'两面皆平 · 再问初心'},yin:{title:'阴筊',description:'所问未允，且缓一缓',faces:'两面皆凸 · 从容思量'}};
-let busy=false,soundEnabled=false,audioContext,lastThrow=0,lastMotion=null,motionEnabled=false,motionTimer;
-function cupSVG(flat,id){
-  const face='M12 41Q100-25 188 41Q148 102 100 122Q52 102 12 41Z';
-  const side='M12 41Q100-25 188 41L188 61Q148 122 100 142Q52 122 12 61Z';
-  // Irregular long fibres and smaller broken pores remain visible at phone size.
-  const fibres=Array.from({length:48},(_,i)=>{
-    const x=i*4.6-10, bend=Math.sin(i*2.37)*3.5, width=i%7===0?1.4:.65;
-    const d=`M${x} -15C${x+bend+5} 20 ${x-4} 37 ${x+bend} 63S${x+7} 106 ${x+2} 150`;
-    return `<path d="${d}" fill="none" stroke="#3d1015" stroke-width="${width}" opacity="${i%3===0?.65:.4}"/><path d="${d}" transform="translate(1.2 0)" fill="none" stroke="#b86c56" stroke-width=".55" opacity=".25"/>`;
-  }).join('');
-  const pores=Array.from({length:75},(_,i)=>{
-    const x=(i*37.7)%194, y=(i*23.3)%139, length=2+(i%5);
-    return `<path d="M${x} ${y}l.7 ${length}" stroke="#321014" stroke-width=".7" opacity=".5"/>`;
-  }).join('');
-  const edges=Array.from({length:43},(_,i)=>`<path d="M${i*5} 20l-4 126" stroke="${i%3?'#260a0e':'#aa4f47'}" stroke-width="${i%3?.9:.6}" opacity=".55"/>`).join('');
-  return `<svg viewBox="0 0 200 152" role="presentation"><defs>
-    <linearGradient id="wood-${id}" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="${flat?'#92372f':'#a14035'}"/><stop offset=".5" stop-color="#843029"/><stop offset="1" stop-color="#69221e"/></linearGradient>
-    <linearGradient id="edge-${id}" x2="0" y2="1"><stop stop-color="#782824"/><stop offset="1" stop-color="#320d11"/></linearGradient>
-    <linearGradient id="round-${id}"><stop stop-color="#2e0c10" stop-opacity=".75"/><stop offset=".35" stop-color="#af5547" stop-opacity=".2"/><stop offset="1" stop-color="#290c10" stop-opacity=".8"/></linearGradient>
-    <clipPath id="cup-clip-${id}" clipPathUnits="userSpaceOnUse"><path d="${side}"/><path d="${face}"/></clipPath>
-    <clipPath id="face-clip-${id}" clipPathUnits="userSpaceOnUse"><path d="${face}"/></clipPath><clipPath id="side-clip-${id}" clipPathUnits="userSpaceOnUse"><path d="${side}"/></clipPath>
-    <filter id="pores-${id}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".42 .16" numOctaves="3" seed="${id==='left'?8:17}" result="noise"/><feColorMatrix in="noise" type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".12"/></feComponentTransfer><feComposite in2="SourceAlpha" operator="in" result="clipped-noise"/><feBlend in="SourceGraphic" in2="clipped-noise" mode="soft-light"/></filter>
-  </defs>
-  <g clip-path="url(#cup-clip-${id})">
-  <path d="${side}" fill="url(#edge-${id})"/><g clip-path="url(#side-clip-${id})">${edges}</g>
-  <g clip-path="url(#face-clip-${id})"><path d="${face}" fill="url(#wood-${id})" filter="url(#pores-${id})"/></g>
-  ${flat?'':`<path d="${face}" fill="url(#round-${id})"/>`}
-  <g clip-path="url(#face-clip-${id})"><g transform="rotate(-17 100 60)">${fibres}${pores}<path d="M116 0C101 29 99 42 105 64S122 103 116 140M119 0C105 31 103 44 109 65S126 104 120 140" fill="none" stroke="#46151a" stroke-width=".8" opacity=".45"/></g></g>
-  <path d="M13 41Q100-24 187 41" fill="none" stroke="#b96650" stroke-width=".65" stroke-opacity=".3"/>
-  ${flat?'':`<path d="M35 44Q98 4 162 43" fill="none" stroke="#be7358" stroke-width="1" opacity=".15"/>`}
-  </g></svg>`;
-}
-function renderCups(left,right){document.querySelector('#left-cup').innerHTML=cupSVG(left,'left');document.querySelector('#right-cup').innerHTML=cupSVG(right,'right')}
-renderCups(true,true);
+const storageKey='ling-jiao-game-v1';
+let busy=false,soundEnabled=false,audioContext,lastThrow=0,lastMotion=null,motionEnabled=false,motionTimer,pendingScene='mazu',sceneLoadVersion=0;
+let state={scene:'mazu',mode:'record',question:'',history:[],counts:{sheng:0,yin:0,xiao:0}},storageAvailable=true;
+try{const saved=JSON.parse(localStorage.getItem(storageKey)||'null');if(saved&&typeof saved==='object'){
+ if(scenes.some(scene=>scene.id===saved.scene))state.scene=saved.scene;
+ if(saved.mode==='experience')state.mode='experience';
+ if(typeof saved.question==='string')state.question=saved.question.slice(0,120);
+ if(Array.isArray(saved.history))state.history=saved.history.filter(row=>row&&scenes.some(scene=>scene.id===row.scene)&&Object.hasOwn(outcomes,row.outcome)&&Number.isFinite(row.time)&&typeof row.question==='string').slice(0,100).map(row=>({...row,question:row.question.slice(0,120)}));
+ for(const key of Object.keys(outcomes)){const count=saved.counts?.[key];state.counts[key]=Number.isSafeInteger(count)&&count>=0?count:state.history.filter(row=>row.outcome===key).length}
+}}catch{storageAvailable=false}
+function persist(){try{localStorage.setItem(storageKey,JSON.stringify(state));storageAvailable=true}catch{storageAvailable=false}}
+function currentScene(){return scenes.find(scene=>scene.id===state.scene)||scenes[0]}
+function escapeHTML(value){return String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
+function renderCups(left,right){$('#left-cup').innerHTML=`<img class="cup-sprite" src="./assets/jiaobei-${left?'flat':'convex'}.webp" alt="" draggable="false">`;$('#right-cup').innerHTML=`<img class="cup-sprite" src="./assets/jiaobei-${right?'flat':'convex'}.webp" alt="" draggable="false">`}
+function updateCounts(){for(const key of Object.keys(outcomes))$('#count-'+key).textContent=String(state.counts[key]);$('#stats').hidden=state.mode==='experience'}
+function restingMessage(){return state.question?'所问：'+state.question:motionEnabled?'体感已启用，轻摇手机掷筊':'心中默念所问之事，点击掷筊'}
+function resetResult(){result.hidden=true;game.classList.remove('resolved','throwing');status.style.visibility='visible';status.textContent=restingMessage();throwLabel.textContent='点击掷筊';renderCups(true,true)}
+function renderMode(){const record=state.mode==='record';$('#record-mode').classList.toggle('active',record);$('#experience-mode').classList.toggle('active',!record);$('#record-mode').setAttribute('aria-pressed',String(record));$('#experience-mode').setAttribute('aria-pressed',String(!record));$('#intro-copy').textContent=record?'一事一问，留存筊意':'静心体验，随手而动';updateCounts()}
+function setMode(mode){if(busy)return;state.mode=mode;persist();resetResult();renderMode()}
+function applyScene(){const scene=currentScene();$('#scene-background').style.backgroundImage=`url("./assets/${scene.asset}")`;$('#temple-label').textContent=scene.temple+' · '+scene.short;$('#result-label').textContent=scene.short+'灵筊'}
 function playTone(frequency,duration,type='sine',volume=.08,delay=0){if(!soundEnabled)return;try{audioContext??=new(window.AudioContext||window.webkitAudioContext)();audioContext.resume();const osc=audioContext.createOscillator(),gain=audioContext.createGain(),start=audioContext.currentTime+delay;osc.type=type;osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(volume,start);gain.gain.exponentialRampToValueAtTime(.001,start+duration);osc.connect(gain);gain.connect(audioContext.destination);osc.start(start);osc.stop(start+duration)}catch{}}
 function randomFace(){const value=new Uint32Array(1);crypto.getRandomValues(value);return Boolean(value[0]&1)}
-function toss(){if(busy)return;busy=true;lastThrow=Date.now();clearTimeout(motionTimer);result.hidden=true;game.classList.remove('resolved');game.classList.add('throwing');throwButton.disabled=true;throwLabel.textContent='诚心问筊';status.textContent='一念虔诚，静候筊示…';renderCups(true,true);playTone(190,.2,'triangle',.1);const left=randomFace(),right=randomFace();const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;setTimeout(()=>{renderCups(left,right);game.classList.remove('throwing');game.classList.add('resolved');const outcome=outcomes[left!==right?'sheng':left?'xiao':'yin'];document.querySelector('#result-title').textContent=outcome.title;document.querySelector('#result-description').textContent=outcome.description;document.querySelector('#result-faces').textContent=outcome.faces;result.hidden=false;status.style.visibility='hidden';throwLabel.textContent='再掷一筊';throwButton.disabled=false;busy=false;playTone(145,.15,'triangle',.16);playTone(880,1.6,'sine',.05,.16);if(navigator.vibrate)navigator.vibrate([30,50,30])},reduced?180:1700)}
+function setBusy(value){busy=value;throwButton.disabled=value;for(const id of ['record-mode','experience-mode','choose-scene','ask-question','history','reset'])$('#'+id).disabled=value}
+function toss(){if(busy||document.querySelector('dialog[open]'))return;setBusy(true);lastThrow=Date.now();clearTimeout(motionTimer);result.hidden=true;game.classList.remove('resolved');game.classList.add('throwing');throwLabel.textContent='诚心问筊';status.textContent='一念虔诚，静候筊示…';renderCups(true,true);playTone(190,.2,'triangle',.1);const left=randomFace(),right=randomFace();const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;setTimeout(()=>{
+ renderCups(left,right);game.classList.remove('throwing');game.classList.add('resolved');const key=left!==right?'sheng':left?'xiao':'yin',outcome=outcomes[key];$('#result-title').textContent=outcome.title;$('#result-description').textContent=outcome.description;$('#result-faces').textContent=outcome.faces;result.hidden=false;status.style.visibility='hidden';throwLabel.textContent='再掷一筊';
+ if(state.mode==='record'){state.counts[key]++;state.history.unshift({time:Date.now(),scene:state.scene,outcome:key,question:state.question});state.history=state.history.slice(0,100);persist();updateCounts()}
+ setBusy(false);playTone(145,.15,'triangle',.16);playTone(880,1.6,'sine',.05,.16);if(navigator.vibrate)navigator.vibrate([30,50,30]);
+ },reduced?180:1700)}
 throwButton.addEventListener('click',toss);
-document.querySelector('#sound').addEventListener('click',()=>{soundEnabled=!soundEnabled;const button=document.querySelector('#sound');button.setAttribute('aria-label',soundEnabled?'关闭声音':'开启声音');button.setAttribute('aria-pressed',String(soundEnabled));button.style.opacity=soundEnabled?'1':'.55';if(soundEnabled)playTone(660,.6)});
-document.querySelector('#sound').style.opacity='.55';
-function motionHandler(event){const a=event.accelerationIncludingGravity;if(!a||a.x==null||a.y==null||a.z==null)return;clearTimeout(motionTimer);if(!game.classList.contains('resolved')){status.style.visibility='visible';status.textContent='体感已启用，轻摇手机掷筊'}const now=Date.now();if(lastMotion&&now-lastMotion.time<600&&Math.abs(a.x-lastMotion.x)+Math.abs(a.y-lastMotion.y)+Math.abs(a.z-lastMotion.z)>24&&now-lastThrow>2500)toss();lastMotion={x:a.x,y:a.y,z:a.z,time:now}}
-function showMotionStatus(message){status.style.visibility='visible';status.textContent=message;}
-motionButton.addEventListener('click',async()=>{if(motionEnabled){window.removeEventListener('devicemotion',motionHandler);clearTimeout(motionTimer);motionEnabled=false;motionButton.textContent='启用摇手机';showMotionStatus('体感已关闭，点击即可掷筊');return}if(!window.isSecureContext||!window.DeviceMotionEvent){showMotionStatus('此设备暂不支持体感，请点击掷筊');return}try{if(typeof DeviceMotionEvent.requestPermission==='function'){const permission=await DeviceMotionEvent.requestPermission();if(permission!=='granted'){showMotionStatus('未获得体感授权，请点击掷筊');return}}window.addEventListener('devicemotion',motionHandler);motionEnabled=true;motionButton.textContent='关闭摇手机';showMotionStatus('体感已启用，轻摇手机掷筊');motionTimer=setTimeout(()=>showMotionStatus('未检测到体感数据，点击也可掷筊'),5000)}catch{showMotionStatus('体感不可用，请点击掷筊')}});
-const dialog=document.querySelector('#help-dialog');document.querySelector('#help').addEventListener('click',()=>dialog.showModal());document.querySelector('#close-help').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close()}});
+$('#record-mode').addEventListener('click',()=>setMode('record'));$('#experience-mode').addEventListener('click',()=>setMode('experience'));
+$('#sound').addEventListener('click',()=>{soundEnabled=!soundEnabled;$('#sound').setAttribute('aria-label',soundEnabled?'关闭声音':'开启声音');$('#sound').setAttribute('aria-pressed',String(soundEnabled));$('#sound').style.opacity=soundEnabled?'1':'.55';if(soundEnabled)playTone(660,.6)});$('#sound').style.opacity='.55';
+function motionHandler(event){const a=event.accelerationIncludingGravity;if(!a||a.x==null||a.y==null||a.z==null)return;clearTimeout(motionTimer);if(!game.classList.contains('resolved')){status.style.visibility='visible';status.textContent=restingMessage()}const now=Date.now();if(lastMotion&&now-lastMotion.time<600&&Math.abs(a.x-lastMotion.x)+Math.abs(a.y-lastMotion.y)+Math.abs(a.z-lastMotion.z)>24&&now-lastThrow>2500)toss();lastMotion={x:a.x,y:a.y,z:a.z,time:now}}
+function showMotionStatus(message){status.style.visibility='visible';status.textContent=message}
+motionButton.addEventListener('click',async()=>{if(motionEnabled){window.removeEventListener('devicemotion',motionHandler);clearTimeout(motionTimer);motionEnabled=false;lastMotion=null;motionButton.textContent='启用摇手机';motionButton.setAttribute('aria-pressed','false');showMotionStatus('体感已关闭，点击即可掷筊');return}if(!window.isSecureContext||!window.DeviceMotionEvent){showMotionStatus('此设备暂不支持体感，请点击掷筊');return}try{if(typeof DeviceMotionEvent.requestPermission==='function'){const permission=await DeviceMotionEvent.requestPermission();if(permission!=='granted'){showMotionStatus('未获得体感授权，请点击掷筊');return}}window.addEventListener('devicemotion',motionHandler);motionEnabled=true;motionButton.textContent='关闭摇手机';motionButton.setAttribute('aria-pressed','true');showMotionStatus('体感已启用，轻摇手机掷筊');motionTimer=setTimeout(()=>showMotionStatus('未检测到体感数据，点击也可掷筊'),5000)}catch{showMotionStatus('体感不可用，请点击掷筊')}});
+function renderSceneCards(){const selected=pendingScene;$('#scene-grid').innerHTML=scenes.map(scene=>`<button class="scene-card ${scene.id===selected?'selected':''}" data-scene="${scene.id}" aria-pressed="${scene.id===selected}"><img src="./assets/${scene.asset}" alt="${scene.short}神像" loading="lazy"><span class="selection-dot" aria-hidden="true">${scene.id===selected?'✓':''}</span><span class="scene-card-copy"><strong>${scene.name}</strong><span>${scene.temple}</span><small>${scene.theme}</small></span></button>`).join('')}
+$('#choose-scene').addEventListener('click',()=>{if(busy)return;pendingScene=state.scene;$('#scene-message').textContent='';renderSceneCards();$('#scene-dialog').showModal()});
+$('#scene-grid').addEventListener('click',event=>{const card=event.target.closest('[data-scene]');if(!card)return;pendingScene=card.dataset.scene;renderSceneCards();$('#scene-message').textContent=''});
+$('#use-scene').addEventListener('click',()=>{const scene=scenes.find(item=>item.id===pendingScene);if(!scene)return;const version=++sceneLoadVersion;$('#use-scene').disabled=true;$('#scene-message').textContent='正在进入'+scene.temple+'…';const image=new Image();image.onload=()=>{if(version!==sceneLoadVersion)return;state.scene=scene.id;persist();applyScene();resetResult();$('#use-scene').disabled=false;$('#scene-dialog').close()};image.onerror=()=>{if(version!==sceneLoadVersion)return;$('#use-scene').disabled=false;$('#scene-message').textContent='场景加载失败，请重新选择或稍后再试。'};image.src='./assets/'+scene.asset});
+$('#scene-dialog').addEventListener('close',()=>{sceneLoadVersion++;$('#use-scene').disabled=false});
+function updateQuestionLength(){$('#question-length').textContent=$('#question').value.length+' / 120'}
+$('#ask-question').addEventListener('click',()=>{if(busy)return;$('#question').value=state.question;updateQuestionLength();$('#question-dialog').showModal()});$('#question').addEventListener('input',updateQuestionLength);
+$('#save-question').addEventListener('click',()=>{state.question=$('#question').value.trim().slice(0,120);persist();resetResult();$('#question-dialog').close()});
+function renderHistory(){const counts=Object.keys(outcomes).map(key=>outcomes[key].title+' '+state.counts[key]).join(' · ');$('#history-summary').textContent='累计 '+Object.values(state.counts).reduce((sum,count)=>sum+count,0)+' 次 · '+counts;$('#history-list').innerHTML=state.history.length?state.history.map(row=>{const scene=scenes.find(item=>item.id===row.scene);const time=new Date(row.time).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});return `<article class="history-entry"><div><strong class="outcome-${row.outcome}">${outcomes[row.outcome].title}</strong><span>${scene.short}</span><time>${time}</time></div><p>${escapeHTML(row.question||'心中默念，未填写问题')}</p><small>${outcomes[row.outcome].faces}</small></article>`}).join(''):'<div class="empty-history">尚无问筊记录<p>在记录模式下掷一筊，留存这一刻的心意。</p></div>';$('#storage-note').textContent=storageAvailable?'保存在本机，最多留存最近 100 次。':'浏览器未允许本地存储，当前记录仅在本次打开期间保留。';$('#export-history').disabled=!state.history.length}
+$('#history').addEventListener('click',()=>{renderHistory();$('#history-dialog').showModal()});
+$('#export-history').addEventListener('click',()=>{if(!state.history.length)return;const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),counts:state.counts,records:state.history},null,2)],{type:'application/json;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='灵筊记录-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+$('#reset').addEventListener('click',()=>{if(!busy)$('#reset-dialog').showModal()});$('#confirm-reset').addEventListener('click',()=>{state.history=[];state.counts={sheng:0,yin:0,xiao:0};persist();updateCounts();resetResult();$('#reset-dialog').close()});
+$('#help').addEventListener('click',()=>$('#help-dialog').showModal());$('#close-help').addEventListener('click',()=>$('#help-dialog').close());
+for(const button of document.querySelectorAll('[data-close]'))button.addEventListener('click',()=>$('#'+button.dataset.close).close());
+for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('click',event=>{if(event.target!==dialog)return;const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close()});
+applyScene();renderMode();resetResult();

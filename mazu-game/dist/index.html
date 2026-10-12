@@ -2,20 +2,27 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#26170e">
-<title>妈祖灵筊 · 一念虔诚</title><meta name="description" content="面朝妈祖，双掌托筊。点击或轻摇手机，体验传统掷筊小游戏。">
-<link rel="stylesheet" href="./style.css?v=3">
+<title>灵筊 · 一念虔诚</title><meta name="description" content="选择神明场景，静心问事。点击或轻摇手机掷筊，体验传统民俗并保存本机记录。">
+<link rel="preload" as="image" href="./assets/jiaobei-flat.webp"><link rel="preload" as="image" href="./assets/jiaobei-convex.webp">
+<link rel="stylesheet" href="./style.css?v=5">
 </head>
 <body>
 <main class="temple" id="game">
-<div class="scene" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div>
-<header><button class="round" id="sound" aria-label="开启声音" title="声音"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15 8c3 2 3 6 0 8M18 5c5 4 5 10 0 14"/></svg></button><span class="temple-label">天后宫 · 妈祖灵筊</span><button class="round" id="help" aria-label="玩法说明">?</button></header>
-<section class="intro"><div class="eyebrow">一 念 虔 诚 · 一 筊 问 心</div><h1>轻摇手机</h1><div class="ornament"><i></i><span>❖</span><i></i></div><p>双掌托筊，随手而动</p></section>
+<div class="scene" id="scene-background" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div>
+<header><button class="round" id="sound" aria-label="开启声音" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4zM15 8c3 2 3 6 0 8M18 5c5 4 5 10 0 14"/></svg></button><span class="temple-label" id="temple-label">天后宫 · 妈祖</span><button class="round" id="help" aria-label="玩法说明">?</button></header>
+<div class="mode-switch" role="group" aria-label="游戏模式"><button id="record-mode" class="active" aria-pressed="true">记录模式</button><button id="experience-mode" aria-pressed="false">体验模式</button></div>
+<section class="intro"><h1>掷筊问心</h1><div class="ornament"><i></i><span>❖</span><i></i></div><p id="intro-copy">一念虔诚，双掌托筊</p></section>
 <div class="incense" aria-hidden="true"><span></span><span></span><span></span></div>
 <div class="status" id="status" role="status">心中默念所问之事，点击掷筊</div>
-<section class="result" id="result" hidden aria-live="polite"><span class="result-label">妈祖灵筊</span><h2 id="result-title"></h2><div class="ornament"><i></i><span>❖</span><i></i></div><p id="result-description"></p><small id="result-faces"></small></section>
+<section class="result" id="result" hidden aria-live="polite"><span class="result-label" id="result-label">妈祖灵筊</span><h2 id="result-title"></h2><div class="ornament"><i></i><span>❖</span><i></i></div><p id="result-description"></p><small id="result-faces"></small></section>
+<div class="stats" id="stats" aria-label="本机掷筊计数"><div><span>圣筊</span><strong id="count-sheng">0</strong></div><div><span>阴筊</span><strong id="count-yin">0</strong></div><div><span>笑筊</span><strong id="count-xiao">0</strong></div><button id="reset" aria-label="重置记录">↻ 重置</button></div>
 <div class="cups" id="cups" aria-hidden="true"><div class="cup left" id="left-cup"></div><div class="cup right" id="right-cup"></div></div>
-<footer><button class="throw" id="throw"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span><span class="button-flower">✥</span><span id="throw-label">点击掷筊</span><span class="button-flower">✥</span></button><button class="motion" id="motion">启用摇手机</button><p class="footnote">心诚则灵 · 民俗体验，仅供娱乐</p></footer>
-<dialog id="help-dialog"><button class="close" id="close-help" aria-label="关闭">×</button><span class="eyebrow">传统民俗 · 掷筊</span><h2>一筊，问心</h2><p>面朝妈祖，静心默念一个问题，然后点击「掷筊」或启用体感后轻摇手机。</p><dl><dt>圣筊 · 一平一凸</dt><dd>表示允准，所问之事可行。</dd><dt>笑筊 · 两面皆平</dt><dd>问题尚未明朗，静心想清楚再问。</dd><dt>阴筊 · 两面皆凸</dt><dd>表示未允，换个时机或重新思量。</dd></dl><p class="note">每片筊杯独立随机，结果仅作民俗娱乐参考。</p></dialog>
+<footer><button class="throw" id="throw"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span><span class="button-flower">✥</span><span id="throw-label">点击掷筊</span><span class="button-flower">✥</span></button><button class="motion" id="motion" aria-pressed="false">启用摇手机</button><nav class="tools" aria-label="游戏功能"><button id="choose-scene">⌘ 换神明</button><button id="ask-question">✎ 问事</button><button id="history">☷ 记录</button></nav><p class="footnote">神明形象为艺术化场景 · 民俗娱乐体验</p></footer>
+<dialog id="scene-dialog" class="scene-dialog"><button class="close" data-close="scene-dialog" aria-label="关闭场景选择">×</button><span class="eyebrow">一方殿堂 · 一念虔诚</span><h2>选择神明</h2><p class="dialog-lead">择一场景，静心问事</p><div class="scene-grid" id="scene-grid" role="group" aria-label="神明场景"></div><p class="note">神明形象为艺术化场景，仅作民俗文化展示。</p><button class="dialog-primary" id="use-scene">使用这个场景</button><p class="inline-message" id="scene-message" role="status"></p></dialog>
+<dialog id="question-dialog"><button class="close" data-close="question-dialog" aria-label="关闭问事">×</button><span class="eyebrow">一事一问 · 明心见意</span><h2>静心问事</h2><label class="field-label" for="question">写下心中所问之事</label><textarea id="question" maxlength="120" placeholder="例如：接下来，我该如何把握眼前的机会？"></textarea><div class="question-meta"><span>可留空，在心中默念</span><span id="question-length">0 / 120</span></div><p class="note">记录模式会将问题与结果保存在当前设备。</p><button class="dialog-primary" id="save-question">带着这份心意问筊</button></dialog>
+<dialog id="history-dialog" class="history-dialog"><button class="close" data-close="history-dialog" aria-label="关闭历史记录">×</button><span class="eyebrow">筊有回声 · 心有来处</span><h2>问筊记录</h2><div class="history-summary" id="history-summary"></div><div class="history-list" id="history-list"></div><p class="note" id="storage-note">保存在本机，最多留存最近 100 次。</p><button class="dialog-secondary" id="export-history">导出记录</button></dialog>
+<dialog id="reset-dialog"><button class="close" data-close="reset-dialog" aria-label="取消重置">×</button><h2>重置问筊记录</h2><p>清空这台设备保存的所有掷筊记录与计数。神明场景和当前问题会保留。</p><div class="dialog-actions"><button class="dialog-secondary" data-close="reset-dialog">保留记录</button><button class="dialog-primary" id="confirm-reset">清空记录</button></div></dialog>
+<dialog id="help-dialog"><button class="close" id="close-help" aria-label="关闭">×</button><span class="eyebrow">传统民俗 · 掷筊</span><h2>一筊，问心</h2><p>选择神明，静心默念一个问题，然后点击「掷筊」或启用体感后轻摇手机。</p><dl><dt>圣筊 · 一平一凸</dt><dd>表示允准，所问之事可行。</dd><dt>笑筊 · 两面皆平</dt><dd>问题尚未明朗，静心想清楚再问。</dd><dt>阴筊 · 两面皆凸</dt><dd>表示未允，换个时机或重新思量。</dd></dl><p class="note">记录模式保存问题和结果，体验模式不增加记录。每片筊杯独立随机，所有场景使用相同概率。结果仅作民俗娱乐参考。</p></dialog>
 </main>
-<script src="./game.js?v=3"></script>
+<script src="./game.js?v=5"></script>
 </body></html>
