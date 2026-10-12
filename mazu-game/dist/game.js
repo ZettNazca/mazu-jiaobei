@@ -3,32 +3,34 @@ const outcomes={sheng:{title:'圣筊',description:'所问之事，允准可行',
 let busy=false,soundEnabled=false,audioContext,lastThrow=0,lastMotion=null,motionEnabled=false,motionTimer;
 function cupSVG(flat,id){
   const face='M12 41Q100-25 188 41Q148 102 100 122Q52 102 12 41Z';
-  const side='M12 43Q100-23 188 43L188 61Q100 166 12 61Z';
+  const side='M12 41Q100-25 188 41L188 61Q148 122 100 142Q52 122 12 61Z';
   // Irregular long fibres and smaller broken pores remain visible at phone size.
   const fibres=Array.from({length:48},(_,i)=>{
     const x=i*4.6-10, bend=Math.sin(i*2.37)*3.5, width=i%7===0?1.4:.65;
     const d=`M${x} -15C${x+bend+5} 20 ${x-4} 37 ${x+bend} 63S${x+7} 106 ${x+2} 150`;
-    return `<path d="${d}" fill="none" stroke="#3d1015" stroke-width="${width}" opacity="${i%3===0?.65:.4}"/><path d="${d}" transform="translate(1.2 0)" fill="none" stroke="#cf8172" stroke-width=".55" opacity=".32"/>`;
+    return `<path d="${d}" fill="none" stroke="#3d1015" stroke-width="${width}" opacity="${i%3===0?.65:.4}"/><path d="${d}" transform="translate(1.2 0)" fill="none" stroke="#b86c56" stroke-width=".55" opacity=".25"/>`;
   }).join('');
   const pores=Array.from({length:75},(_,i)=>{
     const x=(i*37.7)%194, y=(i*23.3)%139, length=2+(i%5);
     return `<path d="M${x} ${y}l.7 ${length}" stroke="#321014" stroke-width=".7" opacity=".5"/>`;
   }).join('');
   const edges=Array.from({length:43},(_,i)=>`<path d="M${i*5} 20l-4 126" stroke="${i%3?'#260a0e':'#aa4f47'}" stroke-width="${i%3?.9:.6}" opacity=".55"/>`).join('');
-  return `<svg viewBox="0 0 200 140" role="presentation"><defs>
-    <linearGradient id="wood-${id}" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="${flat?'#a0443c':'#a44840'}"/><stop offset=".5" stop-color="#87322e"/><stop offset="1" stop-color="#63211f"/></linearGradient>
+  return `<svg viewBox="0 0 200 152" role="presentation"><defs>
+    <linearGradient id="wood-${id}" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="${flat?'#92372f':'#a14035'}"/><stop offset=".5" stop-color="#843029"/><stop offset="1" stop-color="#69221e"/></linearGradient>
     <linearGradient id="edge-${id}" x2="0" y2="1"><stop stop-color="#782824"/><stop offset="1" stop-color="#320d11"/></linearGradient>
-    <linearGradient id="round-${id}"><stop stop-color="#2e0c10" stop-opacity=".75"/><stop offset=".35" stop-color="#bd6860" stop-opacity=".28"/><stop offset="1" stop-color="#290c10" stop-opacity=".8"/></linearGradient>
-    <clipPath id="face-clip-${id}"><path d="${face}"/></clipPath><clipPath id="side-clip-${id}"><path d="${side}"/></clipPath>
-    <filter id="pores-${id}" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".42 .16" numOctaves="3" seed="${id==='left'?8:17}" result="noise"/><feColorMatrix in="noise" type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".22"/></feComponentTransfer><feBlend in="SourceGraphic" mode="soft-light"/></filter>
+    <linearGradient id="round-${id}"><stop stop-color="#2e0c10" stop-opacity=".75"/><stop offset=".35" stop-color="#af5547" stop-opacity=".2"/><stop offset="1" stop-color="#290c10" stop-opacity=".8"/></linearGradient>
+    <clipPath id="cup-clip-${id}" clipPathUnits="userSpaceOnUse"><path d="${side}"/><path d="${face}"/></clipPath>
+    <clipPath id="face-clip-${id}" clipPathUnits="userSpaceOnUse"><path d="${face}"/></clipPath><clipPath id="side-clip-${id}" clipPathUnits="userSpaceOnUse"><path d="${side}"/></clipPath>
+    <filter id="pores-${id}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency=".42 .16" numOctaves="3" seed="${id==='left'?8:17}" result="noise"/><feColorMatrix in="noise" type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".12"/></feComponentTransfer><feComposite in2="SourceAlpha" operator="in" result="clipped-noise"/><feBlend in="SourceGraphic" in2="clipped-noise" mode="soft-light"/></filter>
   </defs>
+  <g clip-path="url(#cup-clip-${id})">
   <path d="${side}" fill="url(#edge-${id})"/><g clip-path="url(#side-clip-${id})">${edges}</g>
-  <path d="${face}" fill="url(#wood-${id})" filter="url(#pores-${id})"/>
+  <g clip-path="url(#face-clip-${id})"><path d="${face}" fill="url(#wood-${id})" filter="url(#pores-${id})"/></g>
   ${flat?'':`<path d="${face}" fill="url(#round-${id})"/>`}
   <g clip-path="url(#face-clip-${id})"><g transform="rotate(-17 100 60)">${fibres}${pores}<path d="M116 0C101 29 99 42 105 64S122 103 116 140M119 0C105 31 103 44 109 65S126 104 120 140" fill="none" stroke="#46151a" stroke-width=".8" opacity=".45"/></g></g>
-  <path d="M13 41Q100-24 187 41" fill="none" stroke="#c2796b" stroke-width="1" stroke-opacity=".45"/>
-  ${flat?'':`<path d="M35 44Q98 4 162 43" fill="none" stroke="#d78e83" stroke-width="1.5" opacity=".2"/>`}
-  </svg>`;
+  <path d="M13 41Q100-24 187 41" fill="none" stroke="#b96650" stroke-width=".65" stroke-opacity=".3"/>
+  ${flat?'':`<path d="M35 44Q98 4 162 43" fill="none" stroke="#be7358" stroke-width="1" opacity=".15"/>`}
+  </g></svg>`;
 }
 function renderCups(left,right){document.querySelector('#left-cup').innerHTML=cupSVG(left,'left');document.querySelector('#right-cup').innerHTML=cupSVG(right,'right')}
 renderCups(true,true);
